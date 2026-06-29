@@ -3,238 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>오늘의 위치기록 테스트</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f4f6f8;
-      color: #222;
-    }
-    header {
-      background: #111;
-      color: white;
-      padding: 16px;
-      text-align: center;
-    }
-    main {
-      padding: 16px;
-      max-width: 720px;
-      margin: auto;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      margin: 6px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    .start { background: #1e88e5; color: white; }
-    .stop { background: #e53935; color: white; }
-    .save { background: #43a047; color: white; }
-    .clear { background: #777; color: white; }
-    .card {
-      background: white;
-      padding: 14px;
-      border-radius: 12px;
-      margin: 12px 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .log {
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
-      font-size: 14px;
-    }
-    .small {
-      color: #666;
-      font-size: 13px;
-    }
-    textarea {
-      width: 100%;
-      min-height: 70px;
-      font-size: 15px;
-      padding: 10px;
-      box-sizing: border-box;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    #status {
-      font-weight: bold;
-    }
-  </style>
+  <title>오늘의 발자국</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<header>
-  <h2>오늘의 위치기록 테스트</h2>
-  <div class="small">내가 오늘 어디를 다녔는지 기록</div>
-</header>
+  <div class="app">
 
-<main>
-
-  <div class="card">
-    <p>상태: <span id="status">대기 중</span></p>
-    <p class="small">※ 위치 권한을 허용해야 작동합니다.</p>
-
-    <button class="start" onclick="startTracking()">위치 기록 시작</button>
-    <button class="stop" onclick="stopTracking()">위치 기록 정지</button>
-    <button class="save" onclick="recordNow()">현재 위치 1회 기록</button>
-    <button class="clear" onclick="clearLogs()">기록 전체 삭제</button>
-  </div>
-
-  <div class="card">
-    <h3>현재 위치</h3>
-    <div id="currentLocation" class="small">아직 기록 없음</div>
-  </div>
-
-  <div class="card">
-    <h3>메모 추가</h3>
-    <textarea id="memo" placeholder="예: 이 골목 분위기 좋음, 다시 와볼 장소"></textarea>
-  </div>
-
-  <div class="card">
-    <h3>오늘의 이동기록</h3>
-    <div id="logList"></div>
-  </div>
-
-</main>
-
-<script>
-  let watchId = null;
-  let logs = JSON.parse(localStorage.getItem("locationLogs") || "[]");
-
-  function formatTime(date) {
-    return date.toLocaleString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
-  }
-
-  function startTracking() {
-    if (!navigator.geolocation) {
-      alert("이 브라우저는 위치 기능을 지원하지 않습니다.");
-      return;
-    }
-
-    document.getElementById("status").innerText = "기록 중";
-
-    watchId = navigator.geolocation.watchPosition(
-      position => {
-        saveLocation(position, "자동기록");
-      },
-      error => {
-        alert("위치 정보를 가져올 수 없습니다: " + error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-      }
-    );
-  }
-
-  function stopTracking() {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
-    }
-    document.getElementById("status").innerText = "정지됨";
-  }
-
-  function recordNow() {
-    if (!navigator.geolocation) {
-      alert("이 브라우저는 위치 기능을 지원하지 않습니다.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        saveLocation(position, "수동기록");
-      },
-      error => {
-        alert("위치 정보를 가져올 수 없습니다: " + error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-      }
-    );
-  }
-
-  function saveLocation(position, type) {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    const accuracy = position.coords.accuracy;
-    const memo = document.getElementById("memo").value.trim();
-
-    const log = {
-      time: formatTime(new Date()),
-      lat,
-      lng,
-      accuracy,
-      memo,
-      type
-    };
-
-    logs.unshift(log);
-    localStorage.setItem("locationLogs", JSON.stringify(logs));
-
-    document.getElementById("currentLocation").innerHTML = `
-      위도: ${lat}<br>
-      경도: ${lng}<br>
-      정확도: 약 ${Math.round(accuracy)}m<br>
-      기록방식: ${type}
-    `;
-
-    renderLogs();
-  }
-
-  function renderLogs() {
-    const logList = document.getElementById("logList");
-
-    if (logs.length === 0) {
-      logList.innerHTML = `<div class="small">기록이 없습니다.</div>`;
-      return;
-    }
-
-    logList.innerHTML = logs.map((log, index) => `
-      <div class="log">
-        <strong>${log.time}</strong><br>
-        ${log.type}<br>
-        위도: ${log.lat}<br>
-        경도: ${log.lng}<br>
-        정확도: 약 ${Math.round(log.accuracy)}m<br>
-        ${log.memo ? "메모: " + log.memo + "<br>" : ""}
-        <a href="https://map.kakao.com/link/map/${log.lat},${log.lng}" target="_blank">
-          카카오맵에서 보기
-        </a>
-        |
-        <a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank">
-          구글맵에서 보기
-        </a>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">오늘의 이동기록</p>
+        <h1>오늘의 발자국</h1>
+        <p class="desc">내가 오늘 어디를 다녔는지 시간과 위치로 기록합니다.</p>
       </div>
-    `).join("");
-  }
+      <div id="statusBadge" class="badge waiting">대기 중</div>
+    </header>
 
-  function clearLogs() {
-    if (!confirm("모든 위치 기록을 삭제할까요?")) return;
+    <section class="notice">
+      위치 권한을 허용하면 현재 위치를 기록할 수 있습니다.<br>
+      기록은 이 기기 브라우저에만 저장됩니다.
+    </section>
 
-    logs = [];
-    localStorage.removeItem("locationLogs");
-    renderLogs();
+    <section class="controls">
+      <button id="startBtn" class="primary">기록 시작</button>
+      <button id="stopBtn" class="danger">기록 정지</button>
+      <button id="recordBtn" class="secondary">현재 위치 기록</button>
+    </section>
 
-    document.getElementById("currentLocation").innerText = "아직 기록 없음";
-  }
+    <section class="summary">
+      <div class="summary-card">
+        <span>오늘 기록</span>
+        <strong id="countText">0개</strong>
+      </div>
+      <div class="summary-card">
+        <span>마지막 기록</span>
+        <strong id="lastTimeText">없음</strong>
+      </div>
+    </section>
 
-  renderLogs();
-</script>
+    <section class="card">
+      <h2>현재 위치</h2>
+      <div id="currentLocation" class="empty">
+        아직 위치 기록이 없습니다.
+      </div>
+    </section>
 
+    <section class="card">
+      <h2>장소 메모</h2>
+      <textarea id="memoInput" placeholder="예: 분위기 좋은 골목, 다시 와볼 장소"></textarea>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>이동 타임라인</h2>
+        <button id="clearBtn" class="text-btn">전체 삭제</button>
+      </div>
+      <div id="timeline" class="timeline"></div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
